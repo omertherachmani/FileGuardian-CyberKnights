@@ -16,10 +16,11 @@ class NetworkClient:
 
         while True:
             client_msg = input("Enter command:\n>")
-            protocol_msg = ProtocolMessage.parse_user_input(client_msg)
+            protocol_msg = ProtocolMessage.from_user_input(client_msg)
 
             Protocol.send(self.__client_socket, protocol_msg)
             server_msg = Protocol.receive(self.__client_socket)
+
             print(server_msg)
 
             if protocol_msg.command == "EXIT":
