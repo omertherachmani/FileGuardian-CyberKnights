@@ -43,11 +43,13 @@ class ProtocolMessage:
         return cls(command, data)
 
     @classmethod
-    def parse_user_input(cls, user_input: str) -> "ProtocolMessage":
+    def from_user_input(cls, user_input: str) -> "ProtocolMessage":
+
         user_input = user_input.strip()
 
         text_parts = user_input.split(" ", 1)
         command = text_parts[0]
+
         if len(text_parts) > 1:
             data = text_parts[1]
         else:
