@@ -44,17 +44,21 @@ class ProtocolMessage:
         return cls(command, data)
 
     @classmethod
-    def parse_user_input(cls, user_input: str) -> "ProtocolMessage":
+    def from_user_input(cls, user_input: str) -> "ProtocolMessage":
         user_input = user_input.strip()
 
         text_parts = user_input.split(" ", 1)
         command = text_parts[0]
-        data = text_parts[1]
+
+        if len(text_parts) > 1:
+            data = text_parts[1]
+        else:
+            data = ""
 
         return cls(command, data)
 
     def __eq__(self, other) -> bool:
-        return self.__command == other.__command and self.__data == other.__data
+        return self.__command == other.command and self.__data == other.data
 
     def __repr__(self) -> str:
         return f"ProtocolMessage(command={self.command!r}, data={self.data!r})"
