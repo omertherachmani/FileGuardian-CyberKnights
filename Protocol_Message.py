@@ -1,7 +1,6 @@
-SEPARATOR = "|"
-ENCODING = "utf-8"
+
 class ProtocolMessage:
-    HEADER_SIZE = 4  # MAX_LENGTH = 2 ** (8 * HEADER_SIZE) - 1    # largest length
+    HEADER_SIZE = 4
 
     COMMANDS = ["TIME", "ECHO", "PING", "EXIT"]
 
@@ -33,14 +32,14 @@ class ProtocolMessage:
     @classmethod
     def from_bytes(cls, raw) -> "ProtocolMessage":
         try:
-            text = raw.decode(ENCODING)
+            text = raw.decode(cls.ENCODING)
         except Exception as e:
-            raise ValueError(f"Failed to decode bytes with {ENCODING}: {e}")
+            raise ValueError(f"Failed to decode bytes with {cls.ENCODING}: {e}")
 
-        if SEPARATOR not in text:
+        if cls.SEPARATOR not in text:
             raise ValueError("Error: a SEPARATOR is missing")
 
-        command, data = text.split(SEPARATOR)
+        command, data = text.split(cls.SEPARATOR)
         return cls(command, data)
 
     @classmethod
@@ -49,7 +48,10 @@ class ProtocolMessage:
 
         text_parts = user_input.split(" ", 1)
         command = text_parts[0]
-        data = text_parts[1]
+        if len(text_parts) > 1:
+            data = text_parts[1]
+        else:
+            data = ""
 
         return cls(command, data)
 
@@ -60,4 +62,4 @@ class ProtocolMessage:
         return f"ProtocolMessage(command={self.command!r}, data={self.data!r})"
 
     def __str__(self) -> str:
-        return f"Command: {self.command}, Data: {self.data}"
+        return f"{self.command}: {self.data}"
