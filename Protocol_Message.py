@@ -58,7 +58,7 @@ class ProtocolMessage:
         return cls(command, data)
 
     def __eq__(self, other) -> bool:
-        return self.__command == other.__command and self.__data == other.__data
+        return self.__command == other.command and self.__data == other.data
 
     def __repr__(self) -> str:
         return f"ProtocolMessage(command={self.command!r}, data={self.data!r})"
