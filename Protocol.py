@@ -4,7 +4,7 @@ from Protocol_Message import ProtocolMessage
 
 class Protocol:
     HEADER_SIZE = 4
-    COMMANDS = ["PING", "ECHO", "TIME", "EXIT", "ERROR"]
+    COMMANDS = ["PING", "ECHO", "TIME", "EXIT"]
     MAX_LENGTH = 2**16
     BYTE_ORDER: Literal["big", "little"] = "big"
 
@@ -38,19 +38,20 @@ class Protocol:
 
         return ProtocolMessage.from_bytes(body_bytes)
     @staticmethod
-    def _recv_exact(sock: socket.socket, size: int) -> bytes | None:
+    def _recv_exact(sock: socket.socket, n: int) -> bytes | None:
         """
         פעולת עזר פרטית: אוספת בדיוק n בתים מתוך השקע באמצעות קריאות recv חוזרות.
         מחזירה None אם החיבור נסגר לפני השלמת הקריאה.
         """
         data = bytearray()
-        while len(data) < size:
-            packet = sock.recv(size - len(data))
+        while len(data) < n:
+            packet = sock.recv(n - len(data))
             if not packet:
                 raise ConnectionError("Connection closed") # הנתק התרחש לפני שנקראו כל n הבתים
             data.extend(packet)
         return bytes(data)
 
 
-
+class ProtocolError(Exception):
+    pass
 
