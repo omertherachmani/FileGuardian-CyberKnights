@@ -20,7 +20,7 @@ class Protocol:
     def receive(sock) -> ProtocolMessage:
 
         # 1. קריאת 4 הבתים של כותרת האורך
-        header_bytes = Protocol._recv_exact(sock, Protocol.HEADER_SIZE)
+        header_bytes = Protocol.__recv_exact(sock, Protocol.HEADER_SIZE)
         if header_bytes is None:
             raise ConnectionError("Connection closed")
 
@@ -32,13 +32,13 @@ class Protocol:
             raise ValueError(f"Incoming message size ({message_length}) exceeds MAX_LENGTH ({Protocol.MAX_LENGTH})")
 
         # 4. קריאת גוף ההודעה המלא בדיוק לפי האורך שפוענח מהכותרת
-        body_bytes = Protocol._recv_exact(sock, message_length)
+        body_bytes = Protocol.__recv_exact(sock, message_length)
         if body_bytes is None:
             raise ConnectionError("Connection closed")
 
         return ProtocolMessage.from_bytes(body_bytes)
     @staticmethod
-    def _recv_exact(sock: socket.socket, n: int) -> bytes | None:
+    def __recv_exact(sock: socket.socket, n: int) -> bytes | None:
         """
         פעולת עזר פרטית: אוספת בדיוק n בתים מתוך השקע באמצעות קריאות recv חוזרות.
         מחזירה None אם החיבור נסגר לפני השלמת הקריאה.
