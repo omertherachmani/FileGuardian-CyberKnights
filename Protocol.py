@@ -1,6 +1,6 @@
 import socket
 from typing import Literal
-
+from Protocol_Message import ProtocolMessage
 
 class Protocol:
     HEADER_SIZE = 4
