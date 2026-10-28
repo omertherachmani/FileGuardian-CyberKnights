@@ -12,10 +12,10 @@ class Protocol:
     """
 
     # --- קבועי מחלקה ---
-    HEADER_SIZE = 4
-    BYTE_ORDER: Literal["big", "little"] = "big"
-    MAX_LENGTH = 2**16
-    COMMANDS = ["PING", "ECHO", "TIME", "EXIT"]
+    __HEADER_SIZE = 4
+    __BYTE_ORDER: Literal["big", "little"] = "big"
+    __MAX_LENGTH = 2 ** 16
+    __COMMANDS = ["PING", "ECHO", "TIME", "EXIT"]
 
 
     @staticmethod
@@ -27,10 +27,10 @@ class Protocol:
 
         body_bytes = message.to_bytes()
 
-        if len(body_bytes) > Protocol.MAX_LENGTH:
-            raise ValueError(f"Message size ({len(body_bytes)}) exceeds MAX_LENGTH ({Protocol.MAX_LENGTH})")
+        if len(body_bytes) > Protocol.__MAX_LENGTH:
+            raise ValueError(f"Message size ({len(body_bytes)}) exceeds MAX_LENGTH ({Protocol.__MAX_LENGTH})")
 
-        header = len(body_bytes).to_bytes(Protocol.HEADER_SIZE, byteorder=Protocol.BYTE_ORDER)
+        header = len(body_bytes).to_bytes(Protocol.__HEADER_SIZE, byteorder=Protocol.__BYTE_ORDER)
         sock.sendall(header + body_bytes)
 
 
@@ -42,12 +42,12 @@ class Protocol:
         ו-ProtocolError אם הגוף אינו הודעה תקינה.
         """
 
-        header_bytes = Protocol.__recv_exact(sock, Protocol.HEADER_SIZE)
+        header_bytes = Protocol.__recv_exact(sock, Protocol.__HEADER_SIZE)
 
-        message_length = int.from_bytes(header_bytes, byteorder=Protocol.BYTE_ORDER)
+        message_length = int.from_bytes(header_bytes, byteorder=Protocol.__BYTE_ORDER)
 
-        if message_length > Protocol.MAX_LENGTH:
-            raise ValueError(f"Incoming message size ({message_length}) exceeds MAX_LENGTH ({Protocol.MAX_LENGTH})")
+        if message_length > Protocol.__MAX_LENGTH:
+            raise ValueError(f"Incoming message size ({message_length}) exceeds MAX_LENGTH ({Protocol.__MAX_LENGTH})")
 
         body_bytes = Protocol.__recv_exact(sock, message_length)
 
