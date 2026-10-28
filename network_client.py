@@ -30,7 +30,7 @@ class NetworkClient:
 
             while True:
 
-                request = input("Enter command:\n>")
+                request = input("Enter command:\n> ")
 
                 #הופכים את ההודעה לאובייקט מסוג ProtocolMessage
                 protocol_request = ProtocolMessage.from_user_input(request)
