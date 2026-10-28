@@ -1,3 +1,5 @@
+from tkinter.constants import SEPARATOR
+
 from protocol_error import ProtocolError
 
 
@@ -44,7 +46,7 @@ class ProtocolMessage:
     def to_bytes(self) -> bytes:
         """בונה את הטקסט COMMAND|data ומקודד אותו לבתים ב-UTF-8."""
 
-        text = f"{self.__command}{self.SEPARATOR} {self.__data}"
+        text = f"{self.__command}{self.SEPARATOR}{self.__data}"
         encoded_text = text.encode(self.ENCODING)
         return encoded_text
 
@@ -108,4 +110,4 @@ class ProtocolMessage:
     def __str__(self) -> str:
         """תיאור קריא של הפקודה והתוכן להצגה."""
 
-        return f"{self.command}: {self.data}"
+        return f"{self.command}:{self.data}"
