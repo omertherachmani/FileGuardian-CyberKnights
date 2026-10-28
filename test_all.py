@@ -142,7 +142,7 @@ def test_6_server_is_off():
     לא מפעילים שרת על פורט 5006, ולכן אין עם מי להתחבר.
     """
     with pytest.raises(ConnectionError):
-        NetworkClient("127.0.0.1", 5006)
+        NetworkClient("127.0.0.1", 5006).run()
 
     print("✓ Test 6: Connecting to a stopped server raises ConnectionError passed")
 

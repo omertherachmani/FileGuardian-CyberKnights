@@ -27,7 +27,6 @@ class NetworkClient:
             #הלקוח מנסה להתחבר לשרת
             self.__client_socket.connect((self.__host, self.__port))
 
-
             while True:
 
                 request = input("Enter command:\n> ")
