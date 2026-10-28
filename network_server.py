@@ -1,8 +1,9 @@
 import socket
 from datetime import datetime
 
-from Protocol import Protocol
-from Protocol_Message import ProtocolMessage
+from protocol import Protocol
+from protocol_error import ProtocolError
+from protocol_message import ProtocolMessage
 
 
 class NetworkServer:
@@ -34,9 +35,9 @@ class NetworkServer:
         self.__ip: str = ip
         self.__port: int = port
         self.__server: socket.socket = socket.socket()
-        self.__server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         # מאפשר להריץ מחדש מיד אחרי סגירה, בלי "Address already in use" (מצב TIME_WAIT).
         # חייב להיקרא לפני bind.
+        self.__server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.__server.bind((self.__ip, self.__port))
         self.__server.listen(NetworkServer.BACKLOG)
 
@@ -70,18 +71,22 @@ class NetworkServer:
         """
 
         print(f"[SERVER] Client connected: {address}")
+
         with client_socket:
             try:
                 while True:
                     try:
                         request = Protocol.receive(client_socket)
-                    except Protocol as e:  # הזרם מסונכרן, אפשר להמשיך
+
+                    except ProtocolError as e:  # הזרם מסונכרן, אפשר להמשיך
                         Protocol.send(client_socket, ProtocolMessage(NetworkServer.ERROR, str(e)))
                         continue
 
                     Protocol.send(client_socket, self.__process(request))
+
                     if request.command == NetworkServer.EXIT:
                         break
+
             except (ConnectionError, ValueError) as e:  # ניתוק או הפרה שאין ממנה התאוששות
                 print(f"[SERVER] Connection ended: {e}")
 
