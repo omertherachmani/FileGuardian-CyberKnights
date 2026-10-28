@@ -1,6 +1,6 @@
 import socket
-from Protocol import Protocol
-from Protocol_Message import ProtocolMessage
+from protocol import Protocol
+from protocol_message import ProtocolMessage
 
 class NetworkClient:
 
