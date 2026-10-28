@@ -14,7 +14,7 @@ class Protocol:
     # --- קבועי מחלקה ---
     HEADER_SIZE = 4
     BYTE_ORDER: Literal["big", "little"] = "big"
-    MAX_LENGTH = 2 ** 16
+    MAX_LENGTH = 2 ** 32 -1
     COMMANDS = ["PING", "ECHO", "TIME", "EXIT"]
 
 
