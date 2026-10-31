@@ -17,7 +17,7 @@ class NetworkClient:
         self.__port = port
         self.__client_socket = socket.socket()
 
-    def run(self):
+    def run(self) -> None:
         """
         מנהל את התקשורת מול השרת בלולאה עד שהלקוח שולח EXIT.
         הלקוח שולח פקודה לשרת, הופך אותה להודעת פרוטוקול, שולח ומציג את תגובות השרת.
@@ -30,9 +30,11 @@ class NetworkClient:
             while True:
 
                 request = input("Enter command:\n> ")
-
-                #הופכים את ההודעה לאובייקט מסוג ProtocolMessage
-                protocol_request = ProtocolMessage.from_user_input(request)
+                try:
+                    #הופכים את ההודעה לאובייקט מסוג ProtocolMessage
+                    protocol_request = ProtocolMessage.from_user_input(request)
+                except ValueError as e:
+                    print(f"Invalid input: {e}")
 
                 #שליחת ההודעה המקודדת דרך הsocket לשרת
                 Protocol.send(self.__client_socket, protocol_request)
