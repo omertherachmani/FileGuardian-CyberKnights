@@ -35,6 +35,7 @@ class NetworkClient:
                     protocol_request = ProtocolMessage.from_user_input(request)
                 except ValueError as e:
                     print(f"Invalid input: {e}")
+                    continue
 
                 #שליחת ההודעה המקודדת דרך הsocket לשרת
                 Protocol.send(self.__client_socket, protocol_request)
