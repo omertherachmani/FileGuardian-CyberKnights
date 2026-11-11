@@ -3,7 +3,7 @@ from protocol_error import ProtocolError
 
 class ProtocolMessage:
     """
-        הודעה אחת בפרוטוקול: שם פקודה ותוכן, בפורמט COMMAND:data בקידוד UTF-8.
+        הודעה אחת בפרוטוקול: שם פקודה ותוכן, בפורמט COMMAND|data בקידוד UTF-8.
         משמשת גם לבקשות (לקוח -> שרת) וגם לתגובות (שרת -> לקוח).
         """
 
@@ -42,7 +42,7 @@ class ProtocolMessage:
 
 
     def to_bytes(self) -> bytes:
-        """בונה את הטקסט COMMAND:data ומקודד אותו לבתים ב-UTF-8."""
+        """בונה את הטקסט COMMAND|data ומקודד אותו לבתים ב-UTF-8."""
 
         text = f"{self.__command}{self.SEPARATOR}{self.__data}"
         encoded_text = text.encode(self.ENCODING)
