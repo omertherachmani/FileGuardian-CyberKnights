@@ -1,114 +1,229 @@
-from protocol_error import ProtocolError
+import socket
+import threading
+import time
+from datetime import datetime
+
+import pytest
+
+from network_client import NetworkClient
+from network_server import NetworkServer
+from protocol import Protocol
+from protocol_message import ProtocolMessage
 
 
-class ProtocolMessage:
+def start_server(port):
     """
+    מפעיל שרת ברקע על הפורט שקיבלנו.
+    השרת רץ ב-thread מסוג daemon, ולכן הוא נעצר כשהבדיקות מסתיימות.
+    """
+    server = NetworkServer("127.0.0.1", port)
+    threading.Thread(target=server.start, daemon=True).start()
+
+
+def connect(port):
+    """
+    מתחבר לשרת על הפורט שקיבלנו.
+    מחזיר את ה-socket המחובר (עם timeout של 5 שניות).
+    """
+    sock = socket.socket()
+    sock.settimeout(5)
+    sock.connect(("127.0.0.1", port))
+    return sock
+
+
+def test_1_ping():
+    """
+    בדיקת הפקודה PING.
+    מוודא שהשרת עונה לבקשת PING בתשובה PONG.
+    """
+    start_server(5001)
+    sock = connect(5001)
+
+    Protocol.send(sock, ProtocolMessage("PING"))
+    response = Protocol.receive(sock)
+
+    assert response.data == "PONG", \
+        f"Error in PING response: Expected 'PONG', " \
+        f"got '{response.data}'"
+    sock.close()
+
+    print("✓ Test 1: PING returns PONG passed")
+
+
+def test_2_echo_hebrew():
+    """
+    בדיקת הפקודה ECHO עם טקסט בעברית.
+    מוודא שהשרת מחזיר בדיוק את אותו טקסט שקיבל, כולל תווים בעברית (UTF-8).
+    """
+    start_server(5002)
+    sock = connect(5002)
         הודעה אחת בפרוטוקול: שם פקודה ותוכן, בפורמט COMMAND|data בקידוד UTF-8.
         משמשת גם לבקשות (לקוח -> שרת) וגם לתגובות (שרת -> לקוח).
         """
 
+    Protocol.send(sock, ProtocolMessage("ECHO", "שלום עולם"))
+    response = Protocol.receive(sock)
 
+    assert response.data == "שלום עולם", \
+        f"Error in ECHO response: Expected 'שלום עולם', " \
+        f"got '{response.data}'"
+    sock.close()
     SEPARATOR = "|"
     ENCODING = "utf-8"
 
+    print("✓ Test 2: ECHO with Hebrew text passed")
 
-    def __init__(self, command: str, data=""):
-        """
-                יוצר הודעה: מנרמל את שם הפקודה לאותיות גדולות ומוודא שהיא אינה ריקה
-                ואינה מכילה מפריד. אחרת מעלה ValueError.
-                """
 
-        if not command:
-            raise ValueError("the command cannot be empty")
+def test_3_time():
+    """
+    בדיקת הפקודה TIME.
+    מוודא שהשרת מחזיר שעה תקפה בפורמט HH:MM:SS.
+    """
+    start_server(5003)
+    sock = connect(5003)
 
+    Protocol.send(sock, ProtocolMessage("TIME"))
+    response = Protocol.receive(sock)
+
+    try:
+        datetime.strptime(response.data, "%H:%M:%S")
+    except ValueError:
+        pytest.fail(
+            f"Error in TIME response: Expected format HH:MM:SS, "
+            f"got '{response.data}'"
+        )
+    sock.close()
         if self.SEPARATOR in command:
             raise ValueError(f"the command cannot have a separator ({self.SEPARATOR})")
 
-        self.__command: str = command.upper()
-        self.__data: str = data
+    print("✓ Test 3: TIME returns a valid time passed")
 
 
-    @property
-    def command(self):
-        """שם הפקודה (באותיות גדולות), לקריאה בלבד."""
+def test_4_unknown_command():
+    """
+    בדיקת פקודה לא מוכרת.
+    מוודא שהשרת עונה ERROR לפקודה שהוא לא מזהה.
+    """
+    start_server(5004)
+    sock = connect(5004)
 
-        return self.__command
+    Protocol.send(sock, ProtocolMessage("HELLO"))
+    response = Protocol.receive(sock)
+
+    assert response.command == "ERROR", \
+        f"Error in unknown command response: Expected command 'ERROR', " \
+        f"got '{response.command}'"
+    sock.close()
+
+    print("✓ Test 4: Unknown command returns ERROR passed")
 
 
-    @property
-    def data(self):
-        """תוכן ההודעה, לקריאה בלבד."""
-        return self.__data
+def test_5_exit():
+    """
+    בדיקת הפקודה EXIT.
+    מוודא שהשרת עונה BYE ואז סוגר את החיבור,
+    כך שכל קריאה נוספת זורקת ConnectionError.
+    """
+    start_server(5005)
+    sock = connect(5005)
 
+    Protocol.send(sock, ProtocolMessage("EXIT"))
+    response = Protocol.receive(sock)
 
+    assert response.data == "BYE", \
+        f"Error in EXIT response: Expected 'BYE', " \
+        f"got '{response.data}'"
+
+    # The server closed the connection, so another read raises ConnectionError
+    with pytest.raises(ConnectionError):
+        Protocol.receive(sock)
+    sock.close()
     def to_bytes(self) -> bytes:
         """בונה את הטקסט COMMAND|data ומקודד אותו לבתים ב-UTF-8."""
 
-        text = f"{self.__command}{self.SEPARATOR}{self.__data}"
-        encoded_text = text.encode(self.ENCODING)
-        return encoded_text
+    print("✓ Test 5: EXIT returns BYE and closes the connection passed")
 
 
-    @classmethod
-    def from_bytes(cls, raw) -> "ProtocolMessage":
-        """
-        מפענח בתים (UTF-8), מפצל במפריד הראשון בלבד ובונה הודעה.
-        הפיצול הראשון בלבד מאפשר ל-data להכיל את תו המפריד.
-        מעלה ProtocolError אם הקידוד שגוי, המפריד חסר או הפקודה אינה תקינה.
-        """
+def test_6_server_is_off(capsys):
+    """
+    בדיקת התחברות כשהשרת כבוי.
+    מוודא שהלקוח לא קורס: הוא תופס את שגיאת החיבור, מדפיס אותה ומסיים.
+    לא מפעילים שרת על פורט 5006, ולכן אין עם מי להתחבר.
+    """
+    NetworkClient("127.0.0.1", 5006).run()
 
-        try:
-            text = raw.decode(cls.ENCODING)
-        except UnicodeDecodeError as e:
-            raise ProtocolError(f"Invalid {cls.ENCODING} data") from e
+    assert "Client connection error" in capsys.readouterr().out, \
+        "Error: the client should print a connection error when the server is off"
 
-        if cls.SEPARATOR not in text:
-            raise ProtocolError("a SEPARATOR is missing")
-
-        command, data = text.split(cls.SEPARATOR, 1)
-
-        try:
-            return cls(command, data)
-        except ValueError as e:
-            raise ProtocolError(str(e)) from e
+    print("✓ Test 6: Connecting to a stopped server is handled without a crash passed")
 
 
-    @classmethod
-    def from_user_input(cls, user_input: str) -> "ProtocolMessage":
-        """
-        מפריד קלט משתמש לשם פקודה ולתוכן אופציונלי (עד הרווח הראשון).
-        מעלה ValueError אם הקלט ריק.
-        """
+def test_7_two_requests():
+    """
+    בדיקת שתי בקשות רצופות על אותו חיבור.
+    מוודא שהשרת מחזיר תשובה תקינה לכל אחת מהן.
+    """
+    start_server(5007)
+    sock = connect(5007)
 
-        user_input = user_input.strip()
+    Protocol.send(sock, ProtocolMessage("PING"))
+    first = Protocol.receive(sock)
 
-        text_parts = user_input.split(" ", 1)
-        command = text_parts[0]
+    Protocol.send(sock, ProtocolMessage("ECHO", "Hi"))
+    second = Protocol.receive(sock)
 
-        if len(text_parts) > 1:
-            data = text_parts[1]
-        else:
-            data = ""
+    assert first.data == "PONG", \
+        f"Error in first response: Expected 'PONG', " \
+        f"got '{first.data}'"
+    assert second.data == "Hi", \
+        f"Error in second response: Expected 'Hi', " \
+        f"got '{second.data}'"
+    sock.close()
 
-        return cls(command, data)
-
-
-    def __eq__(self, other) -> bool:
-        """משווה שתי הודעות לפי שם הפקודה והתוכן."""
-
-        if not isinstance(other, ProtocolMessage):
-            return NotImplemented
-
-        return self.__command == other.command and self.__data == other.data
+    print("✓ Test 7: Two consecutive requests passed")
 
 
-    def __repr__(self) -> str:
-        """ייצוג מפורט של ההודעה לצורכי פיתוח ואיתור תקלות."""
+def test_8_split_message():
+    """
+    בדיקת הודעה שמגיעה בחתיכות קטנות.
+    מוודא שהשרת עדיין קורא אותה כהודעה אחת שלמה,
+    גם כשהיא נשלחת 3 בתים בכל פעם עם השהיה בין החתיכות.
+    """
+    start_server(5008)
+    sock = connect(5008)
 
-        return f"ProtocolMessage(command={self.command!r}, data={self.data!r})"
+    body = ProtocolMessage("ECHO", "Hello World").to_bytes()
+    header = len(body).to_bytes(4, byteorder="big")
+    all_bytes = header + body
+
+    for i in range(0, len(all_bytes), 3):
+        sock.sendall(all_bytes[i:i + 3])
+        time.sleep(0.05)
+
+    response = Protocol.receive(sock)
+
+    assert response.data == "Hello World", \
+        f"Error in split message handling: Expected 'Hello World', " \
+        f"got '{response.data}'"
+    sock.close()
+
+    print("✓ Test 8: Split message is read as one message passed")
 
 
-    def __str__(self) -> str:
-        """תיאור קריא של הפקודה והתוכן להצגה."""
+def test_9_echo_english():
+    """
+    בדיקת הפקודה ECHO עם טקסט באנגלית.
+    מוודא שהשרת מחזיר בדיוק את אותו טקסט שקיבל (בדיקה משלימה לבדיקה 2).
+    """
+    start_server(5009)
+    sock = connect(5009)
 
-        return f"{self.command}{self.SEPARATOR}{self.data}"
+    Protocol.send(sock, ProtocolMessage("ECHO", "Hello World"))
+    response = Protocol.receive(sock)
+
+    assert response.data == "Hello World", \
+        f"Error in ECHO response: Expected 'Hello World', " \
+        f"got '{response.data}'"
+    sock.close()
+
+    print("✓ Test 9: ECHO with English text passed")
