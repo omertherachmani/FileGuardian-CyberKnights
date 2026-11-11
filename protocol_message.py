@@ -57,6 +57,9 @@ def test_2_echo_hebrew():
     """
     start_server(5002)
     sock = connect(5002)
+        הודעה אחת בפרוטוקול: שם פקודה ותוכן, בפורמט COMMAND|data בקידוד UTF-8.
+        משמשת גם לבקשות (לקוח -> שרת) וגם לתגובות (שרת -> לקוח).
+        """
 
     Protocol.send(sock, ProtocolMessage("ECHO", "שלום עולם"))
     response = Protocol.receive(sock)
@@ -65,6 +68,8 @@ def test_2_echo_hebrew():
         f"Error in ECHO response: Expected 'שלום עולם', " \
         f"got '{response.data}'"
     sock.close()
+    SEPARATOR = "|"
+    ENCODING = "utf-8"
 
     print("✓ Test 2: ECHO with Hebrew text passed")
 
@@ -88,6 +93,8 @@ def test_3_time():
             f"got '{response.data}'"
         )
     sock.close()
+        if self.SEPARATOR in command:
+            raise ValueError(f"the command cannot have a separator ({self.SEPARATOR})")
 
     print("✓ Test 3: TIME returns a valid time passed")
 
@@ -131,6 +138,8 @@ def test_5_exit():
     with pytest.raises(ConnectionError):
         Protocol.receive(sock)
     sock.close()
+    def to_bytes(self) -> bytes:
+        """בונה את הטקסט COMMAND|data ומקודד אותו לבתים ב-UTF-8."""
 
     print("✓ Test 5: EXIT returns BYE and closes the connection passed")
 
