@@ -22,7 +22,7 @@ class ProtocolMessage:
             raise ValueError("the command cannot be empty")
 
         if self.SEPARATOR in command:
-            raise ValueError(f"the command cannot have a separator ({self.SEPARATOR})")
+            raise ValueError("the command cannot have a separator (|)")
 
         self.__command: str = command.upper()
         self.__data: str = data

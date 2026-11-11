@@ -17,7 +17,8 @@ class Protocol:
     # כותרת של 4 בתים יכולה לייצג עד 2**32-1, אבל מגבילים לערך סביר (1MB)
     # כדי ששרת לא ימתין לגוף של 4GB מלקוח זדוני או פגום.
     MAX_LENGTH = 1024 * 1024
-    COMMANDS = ["PING", "ECHO", "TIME", "EXIT"]
+    COMMANDS = ["PING", "ECHO", "TIME", "EXIT", "CLIENTS"]
+    COMMANDS_WITH_DATA = ["PING", "ECHO", "TIME", "CLIENTS"]
 
 
     @staticmethod

@@ -5,17 +5,29 @@ from protocol_message import ProtocolMessage
 class NetworkClient:
 
     #קבועים
+    CONNECT_TIMEOUT = 5
+    REPLY_TIMEOUT = 10
     DEFAULT_IP = "127.0.0.1"
     DEFAULT_PORT = 1729
     EXIT = "EXIT"
 
 
-    def __init__(self, host = DEFAULT_IP, port = DEFAULT_PORT):
+    def __init__(self, connected,host = DEFAULT_IP, port = DEFAULT_PORT):
         """פעולה בונה למחלקה: שומר את כתובת השרת והפורט ויוצר socket"""
 
         self.__host = host
         self.__port = port
-        self.__client_socket = socket.socket()
+        self.__sock = socket.socket()
+        self.__connected = connected
+        self.__address = (host, port)
+
+    @property
+    def connected(self) -> bool:
+        return self.__connected
+
+    def request(self, message: ProtocolMessage) -> ProtocolMessage:
+
+        pass
 
     def run(self):
         """
@@ -25,7 +37,7 @@ class NetworkClient:
         """
         try:
             #הלקוח מנסה להתחבר לשרת
-            self.__client_socket.connect((self.__host, self.__port))
+            self.__sock.connect((self.__host, self.__port))
 
 
             while True:
@@ -40,10 +52,10 @@ class NetworkClient:
                     continue
 
                 #שליחת ההודעה המקודדת דרך הsocket לשרת
-                Protocol.send(self.__client_socket, protocol_request)
+                Protocol.send(self.__sock, protocol_request)
 
                 #קבלת הודעת תשובה מהשרת ופענוח בעזרת המחלקה Protocol
-                server_msg = Protocol.receive(self.__client_socket)
+                server_msg = Protocol.receive(self.__sock)
 
                 print(server_msg)
 
@@ -60,8 +72,8 @@ class NetworkClient:
 
         #לבסוף סוגרים את הsocket
         finally:
-            self.__client_socket.close()
+            self.__sock.close()
 
 if __name__ == "__main__":
-    client = NetworkClient()
+    client = NetworkClient(connected= True)
     client.run()
