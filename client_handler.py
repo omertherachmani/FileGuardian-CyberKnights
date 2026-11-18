@@ -1,6 +1,6 @@
 import threading
 import socket
-import datetime
+from datetime import datetime
 from network_server import NetworkServer
 from protocol import Protocol
 from protocol_message import ProtocolMessage
@@ -76,7 +76,7 @@ class ClientHandler(threading.Thread):
 
         if command == self.TIME:
             return ProtocolMessage(self.TIME,
-                                   datetime.datetime.now().strftime(self.TIME_FORMAT))
+                                   datetime.now().strftime(self.TIME_FORMAT))
         if command == self.EXIT:
             return ProtocolMessage(self.EXIT, self.REPLY_BYE)
 
