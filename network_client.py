@@ -1,6 +1,8 @@
 import socket
 from protocol import Protocol
+from protocol_error import ProtocolError
 from protocol_message import ProtocolMessage
+from threading import Lock
 
 class NetworkClient:
 
@@ -12,22 +14,76 @@ class NetworkClient:
     EXIT = "EXIT"
 
 
-    def __init__(self, connected,host = DEFAULT_IP, port = DEFAULT_PORT):
+    def __init__(self, host = DEFAULT_IP, port = DEFAULT_PORT):
         """פעולה בונה למחלקה: שומר את כתובת השרת והפורט ויוצר socket"""
 
         self.__host = host
         self.__port = port
-        self.__sock = socket.socket()
-        self.__connected = connected
-        self.__address = (host, port)
+        self.lock : Lock = Lock()
+        self.sock : socket.socket = socket.socket()
+        self.__connected : bool = False
+        self.address : tuple[str, int] = (host, port)
+
+        try:
+            self.sock.settimeout(self.CONNECT_TIMEOUT)
+            self.sock.connect(self.address)
+            self.__connected = True
+        except OSError:
+            self.close()
+            raise
 
     @property
     def connected(self) -> bool:
         return self.__connected
 
     def request(self, message: ProtocolMessage) -> ProtocolMessage:
+        with self.lock:
+            if not self.__connected:
+                raise ConnectionError("The Client isn't connected")
 
-        pass
+            try:
+                # define wait time for a response
+                self.sock.settimeout(self.REPLY_TIMEOUT)
+
+                # send request and receive an answer
+                Protocol.send(self.sock, message)
+                response = Protocol.receive(self.sock)
+
+
+                if response is None:
+                    self._close_unlocked()
+                    raise ConnectionError("Connection is closed due to ")
+
+
+                if message.command == "EXIT" or response.command == "BYE":
+                    self._close_unlocked()
+
+                return response
+
+            except socket.timeout as err:
+
+                self._close_unlocked()
+                raise TimeoutError("תם הזמן להמתנה לתשובה מהשרת.") from err
+
+            except (OSError, ProtocolError):
+
+                self._close_unlocked()
+                raise
+
+    def close(self) -> None:
+        with self.lock:
+            self._close_unlocked()
+
+    def _close_unlocked(self) -> None:
+        self.__connected = False
+        try:
+            self.sock.shutdown(socket.SHUT_RDWR)
+        except OSError:
+            pass
+        try:
+            self.sock.close()
+        except OSError:
+            pass
 
     def run(self):
         """
@@ -37,7 +93,7 @@ class NetworkClient:
         """
         try:
             #הלקוח מנסה להתחבר לשרת
-            self.__sock.connect((self.__host, self.__port))
+            self.sock.connect((self.__host, self.__port))
 
 
             while True:
@@ -52,10 +108,10 @@ class NetworkClient:
                     continue
 
                 #שליחת ההודעה המקודדת דרך הsocket לשרת
-                Protocol.send(self.__sock, protocol_request)
+                Protocol.send(self.sock, protocol_request)
 
                 #קבלת הודעת תשובה מהשרת ופענוח בעזרת המחלקה Protocol
-                server_msg = Protocol.receive(self.__sock)
+                server_msg = Protocol.receive(self.sock)
 
                 print(server_msg)
 
@@ -72,8 +128,8 @@ class NetworkClient:
 
         #לבסוף סוגרים את הsocket
         finally:
-            self.__sock.close()
+            self.sock.close()
 
 if __name__ == "__main__":
-    client = NetworkClient(connected= True)
+    client = NetworkClient()
     client.run()
